@@ -1,0 +1,4 @@
+sqlalchemy
+bs4
+terminaltables>=3.1.0
+httplib2
