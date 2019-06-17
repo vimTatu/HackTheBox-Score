@@ -4,20 +4,13 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
+from terminaltables import AsciiTable
+
 
 Base = declarative_base()
 
 
-engine = create_engine("sqlite:///htb.db")
-if not os.path.exists("ctfs.db"):
-    Base.metadata.create_all(engine)
-
-Base.metadata.bind = engine
-DBsession = sessionmaker(bind=engine)
-session = DBsession()
-
-
-# This class will be used as table markup.
+# This object will be used as table markup.
 class Scores(Base):
     __tablename__ = "score"
     name = Column(String(256), primary_key=True)
@@ -36,15 +29,61 @@ def add_item(player):
         users=player.users,
         roots=player.roots,
         rank=player.rank,
-        last=player.last,
-        prev=player.prev,
+        last=str(player.last),
+        prev=str(player.prev),
     )
-    if is_unique(new_scores):
+    if not player_exist_in_table(new_scores):
         session.add(new_scores)
         session.commit()
         return True
-    return False
+    last = player_score_changed(new_scores)
+    if last:
+        return last
+    else:
+        return False
 
 
-def is_unique(score):
-    return session.query(Scores).filter(Scores.last == score.last).count() == 0
+def player_exist_in_table(score):
+    if session.query(Scores).filter(Scores.name == score.name).count() == 0:
+        return False
+    else:
+        return True
+
+
+def get_players_stats():
+    table = [["Nickname", "Score", "Owned Users", "Owned Roots", "Rank"]]
+    stats = session.query(Scores).all()
+    for user in stats:
+        table.append(
+            [user.name, user.score, user.users, user.roots, user.rank]
+        )
+    table = AsciiTable(table)
+    return table
+
+
+def player_score_changed(score):
+    record = session.query(Scores).filter(Scores.name == score.name)
+    if record.value("last") != score.last:
+        session.query(Scores).filter_by(name=score.name).update(
+            {
+                "score": score.score,
+                "roots": score.roots,
+                "users": score.users,
+                "prev": score.prev,
+                "last": score.last,
+                "rank": score.rank
+            }
+        )
+        # record.update(score)
+        return score.last
+    else:
+        return False
+
+
+engine = create_engine("sqlite:///htb.db")
+if not os.path.exists("htb.db"):
+    Base.metadata.tables["score"].create(bind=engine)
+
+Base.metadata.bind = engine
+DBsession = sessionmaker(bind=engine)
+session = DBsession()
