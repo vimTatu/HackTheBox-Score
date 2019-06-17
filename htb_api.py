@@ -137,12 +137,12 @@ class HTBAPI(object):
         points = profile[1]
         ownedsystems = profile[2]
         ownedusers = profile[3]
-        rank = profile[5]
+        rank = profile[5] + " " + profile[6]
 
         last_activity = soup.find_all("div", class_="vertical-timeline-content")[0]
-        last_div = str(last_activity[0]).split(" ")
+        last_div = str(last_activity).split(" ")
         last_car = []
-        if last_div[15] == "root" or "user":
+        if last_div[15] == "root" or last_div[15] == "user":
             last_car.append(
                 last_div[13]
                 + " "
@@ -154,8 +154,8 @@ class HTBAPI(object):
                 + " "
                 + last_div[23].split(">")[1].split("<")[0]
             )
-
-        prev_div = str(last_activity[1].split(" "))
+        last_activity = soup.find_all("div", class_="vertical-timeline-content")[1]
+        prev_div = str(last_activity).split(" ")
         prev_car = []
         if prev_div[15] == "root" or "user":
             prev_car.append(
@@ -169,5 +169,7 @@ class HTBAPI(object):
                 + " "
                 + prev_div[23].split(">")[1].split("<")[0]
             )
-        player = Player(nickname, points, ownedusers, ownedsystems, rank, last_car, prev_car)
+        player = Player(
+            nickname, points, ownedusers, ownedsystems, rank, last_car, prev_car
+        )
         return player
